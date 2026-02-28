@@ -1,7 +1,7 @@
 #pragma once
 
 namespace jobscheduler {
-class SpscQueue {
+class SpscChannel {
     
 };
 } // jobscheduler
