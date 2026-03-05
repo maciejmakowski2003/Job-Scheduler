@@ -42,3 +42,8 @@
 
 # build directories
 /build
+
+.DS_Store
+
+# clangd cache
+.cache
