@@ -1,6 +1,7 @@
-#include <iostream>
+#include "CLI.h"
 
 int main() {
-    std::cout << "Job Scheduler\n";
-    return 0;
+  CLI cli;
+  cli.run();
+  return 0;
 }

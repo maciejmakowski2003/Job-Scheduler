@@ -49,8 +49,9 @@ target_include_directories(scheduler-lib
 
 # Examples
 if(BUILD_EXAMPLES)
-    add_executable(example examples/main.cpp)
-    target_link_libraries(example PRIVATE scheduler-lib)
+    add_executable(scheduler-cli examples/main.cpp examples/CLI.cpp)
+    target_link_libraries(scheduler-cli PRIVATE scheduler-lib)
+    target_include_directories(scheduler-cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/examples)
 endif()
 
 # Tests - TODO
