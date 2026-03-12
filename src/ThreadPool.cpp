@@ -35,7 +35,7 @@ void ThreadPool::workerFunction(MpscChannel<Event> &channel) {
   while (true) {
     auto event = channel.receive();
 
-    if (!event || std::holds_alternative<StopEvent>(*event)) {
+    if (!event || std::holds_alternative<StopEvent>(*event)) [[unlikely]] {
       break;
     }
 
