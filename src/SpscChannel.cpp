@@ -1,3 +1,0 @@
-namespace jobscheduler {
-
-} // jobscheduler
