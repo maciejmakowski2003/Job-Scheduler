@@ -54,8 +54,8 @@ if(BUILD_EXAMPLES)
     target_include_directories(scheduler-cli PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/examples)
 endif()
 
-# Tests - TODO
-# if(BUILD_TESTS)
-#     enable_testing()
-#     add_subdirectory(tests)
-# endif()
+# Tests
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
