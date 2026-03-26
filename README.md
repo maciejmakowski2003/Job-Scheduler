@@ -53,6 +53,49 @@ Jako przykładowa forma interakcji z systemem, biblioteka zapewnia prosty interf
 
 ![Archutektura](assets/architecture_diagram.png)
 
+## Diagram klas
+
+### Task status 
+
+Typ wyliczeniowy reprezentujący status zadania. Może przejmować wartości:
+- `Pending` - zadanie oczekuje na wykonanie
+- `Running` - zadanie jest aktualnie wykonywane
+- `Succeeded` - zadanie zostało pomyślnie wykonane
+- `Failed` - zadanie zakończyło się niepowodzeniem
+- `Stopped` - zadanie zostało zatrzymane przed zakończeniem
+
+### Task
+
+Klasa abstrakcyjna reprezentująca zadanie do wykonania. Zawiera informację o statusie, priorytecie, czasie wykonania oraz ilości prób w razie niepowodzenia. Posiada wirtualną metodę `execute()`, która jest implementowana przez klasę dziedziczącą.
+
+### PeriodicTask
+
+Klasa dziedzicząca po `Task`, reprezentująca zadanie, które ma być wykonywane okresowo. Zawiera dodatkowe pole określające interwał czasowy między kolejnymi próbami wykonania zadania.
+
+### MpscChannel 
+
+Klasa generyczna reprezentująca kanał komunikacyjny typu MPSC (Multiple Producer Single Consumer). Umożliwia wielu producentom wysyłanie zdarzeń do jednego konsumenta. Zawiera metody do wysyłania, próby odbierania oraz odbierania zdarzeń. Wykorzystywana do bezpiecznej komunikacji między wątkami workerów, load balancerem, a wątkiem głównym.
+
+### Event 
+
+Unia wykorzystywana podczas komunikacji między wątkami. Zawiera dwa typy zdarzeń:
+- `TaskEvent` - Zadanie do wykonania
+- `StopEvent` - Sygnalizuje wątkom, że mają zakończyć swoją pracę
+
+### LoadBalancer
+
+Klasa odpowiedzialna za zarządzanie rozdzielaniem zadań pomiędzy workerami. Odbiera zadania od wątku głównego i na podstawie priorytetu oraz czasu wykonania zadań, decyduje o kolejności ich wykonania. Komunikacja z workerami odbywa się za pomocą kanałów MPSC.
+
+### ThreadPool
+
+Główna klasa zarządzająca pulą wątków. Odpowiada za stworzenie load balancera oraz workerów, a także za komunikację między nimi. Posiada metody do dodawania zadań do kolejki oraz do zatrzymywania całej puli wątków. Żyje na wątku głównym i komunikuje się z load balancerem oraz workerami za pomocą kanałów MPSC.
+
+### CLI
+
+Klasa stworzona na potrzebę zaprezentowania i przetestowania systemu. Odpowiada za interakcję z użytkownikiem za pomocą CLI. Wypisuje dostępne polecenia, umożliwia tworzenie zadań, monitoring stanu oraz zatrzymanie.
+
+![Class diagram](./assets/class-diagram.png)
+
 ## Wymagania
 
 - CMake 4.0+

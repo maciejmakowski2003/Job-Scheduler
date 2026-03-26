@@ -8,7 +8,8 @@ namespace jobscheduler {
 
 class Task {
 public:
-  explicit Task(int priority): priority_(priority), scheduledTime_(std::chrono::system_clock::now()), status_(TaskStatus::Pending) {}
+  explicit Task(int priority, std::chrono::system_clock::time_point scheduledTime = std::chrono::system_clock::now())
+      : priority_(priority), scheduledTime_(scheduledTime), status_(TaskStatus::Pending) {}
 
   int getPriority() const noexcept { return priority_; }
   TaskStatus getStatus() const noexcept { return status_.load(std::memory_order_acquire); }

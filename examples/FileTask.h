@@ -11,8 +11,9 @@ namespace jobscheduler {
 
 class FileTask : public Task {
 public:
-  explicit FileTask(std::filesystem::path path, int priority = 0)
-      : Task(priority), path_(std::move(path)) {}
+  explicit FileTask(std::filesystem::path path, int priority = 0,
+                    std::chrono::system_clock::time_point scheduledTime = std::chrono::system_clock::now())
+      : Task(priority, scheduledTime), path_(std::move(path)) {}
 
   bool execute() override {
     if (!std::filesystem::exists(path_)) {
