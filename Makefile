@@ -8,7 +8,9 @@ configure:
 build: configure
 	cmake --build $(BUILD_DIR)
 
-test: build
+test:
+	cmake -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+	cmake --build $(BUILD_DIR)
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
 release:
