@@ -18,7 +18,7 @@ struct TaskEntry {
 
 class CLI {
 public:
-  explicit CLI(std::size_t numThreads = 1);
+  explicit CLI(std::size_t numThreads = 4);
 
   void run();
 
