@@ -35,13 +35,10 @@ void CLI::run() {
     } else if (cmd == "schedule") {
       std::string type;
       iss >> type;
-      if (type == "file") {
-        scheduleFile(iss);
-      } else if (type == "compute") {
-        scheduleCompute(iss);
+      if (type.empty()) {
+        std::cerr << "Usage: schedule <file|compute> ...\n";
       } else {
-        std::cerr << "Unknown task type '" << type
-                  << "'. Use 'file' or 'compute'.\n";
+        scheduleTask(type, iss);
       }
     } else {
       std::cerr << "Unknown command '" << cmd << "'. Type 'help' for usage.\n";
@@ -64,19 +61,19 @@ void CLI::printHelp() {
   const int cmdWidth = 45;
 
   std::cout << "\nAvailable Commands:\n"
-            << std::string(70, '=') << '\n'
+            << std::string(100, '=') << '\n'
             << std::left
             << std::setw(cmdWidth) << "Command" << "Description" << '\n'
-            << std::string(70, '-') << '\n'
-            << std::setw(cmdWidth) << "schedule file <path> [priority]"
+            << std::string(100, '-') << '\n'
+            << std::setw(cmdWidth) << "schedule file <path> [priority] [--delay <ms>]"
             << "Schedule a file task\n"
             << std::setw(cmdWidth)
-            << "schedule compute [duration_ms] [priority]"
-            << "Schedule a compute task\n"
+            << "schedule compute [priority] [--delay <ms>]"
+            << "Schedule a 5s compute task\n"
             << std::setw(cmdWidth) << "status" << "List all tasks\n"
             << std::setw(cmdWidth) << "stop" << "Stop the scheduler and exit\n"
             << std::setw(cmdWidth) << "help" << "Show this help\n"
-            << std::string(70, '-') << std::endl;
+            << std::string(100, '-') << std::endl;
 }
 
 void CLI::printStatus() {
@@ -100,33 +97,47 @@ void CLI::printStatus() {
   }
 }
 
-void CLI::scheduleFile(std::istringstream &args) {
-  std::string path;
+void CLI::scheduleTask(const std::string &type, std::istringstream &args) {
+  std::string fileArg;
   int priority = 0;
-  args >> path;
-  if (path.empty()) {
-    std::cerr << "Usage: schedule file <path> [priority]\n";
+  auto scheduledTime = std::chrono::system_clock::now();
+
+  if (type == "file") {
+    args >> fileArg;
+    if (fileArg.empty()) {
+      std::cerr << "Usage: schedule file <path> [priority] [--delay <ms>]\n";
+      return;
+    }
+  } else if (type != "compute") {
+    std::cerr << "Unknown task type '" << type << "'. Use 'file' or 'compute'.\n";
     return;
   }
-  args >> priority;
 
-  auto task = std::make_shared<jobscheduler::FileTask>(path, priority);
+  std::string token;
+  int positionalCount = 0;
+  while (args >> token) {
+    if (token == "--delay") {
+      int delayMs = 0;
+      if (args >> delayMs)
+        scheduledTime = std::chrono::system_clock::now() + std::chrono::milliseconds{delayMs};
+    } else {
+      if (positionalCount == 0) priority = std::stoi(token);
+      ++positionalCount;
+    }
+  }
+
+  std::shared_ptr<jobscheduler::Task> task;
+  std::string description;
+  if (type == "file") {
+    task = std::make_shared<jobscheduler::FileTask>(fileArg, priority, scheduledTime);
+    description = fileArg;
+  } else {
+    task = std::make_shared<ComputeTask>(priority, std::chrono::milliseconds{5000}, scheduledTime);
+    description = "5000ms";
+  }
+
   const int id = nextId_++;
-  tasks_.push_back({id, "file", path, task});
+  tasks_.push_back({id, type, description, task});
   pool_.schedule(task);
-  std::cout << "Scheduled file task #" << id << ": " << path << '\n';
-}
-
-void CLI::scheduleCompute(std::istringstream &args) {
-  int durationMs = 100;
-  int priority = 0;
-  args >> durationMs >> priority;
-
-  auto task = std::make_shared<ComputeTask>(priority,
-                                            std::chrono::milliseconds{durationMs});
-  const int id = nextId_++;
-  tasks_.push_back({id, "compute", std::to_string(durationMs) + "ms", task});
-  pool_.schedule(task);
-  std::cout << "Scheduled compute task #" << id
-            << " (duration: " << durationMs << "ms, priority: " << priority << ")\n";
+  std::cout << "Scheduled " << type << " task #" << id << ": " << description << '\n';
 }

@@ -18,7 +18,7 @@ struct TaskEntry {
 
 class CLI {
 public:
-  explicit CLI(std::size_t numThreads = 4);
+  explicit CLI(std::size_t numThreads = 1);
 
   void run();
 
@@ -31,6 +31,5 @@ private:
   static std::string_view statusToString(jobscheduler::TaskStatus status);
   static void printHelp();
   void printStatus();
-  void scheduleFile(std::istringstream &args);
-  void scheduleCompute(std::istringstream &args);
+  void scheduleTask(const std::string &type, std::istringstream &args);
 };
