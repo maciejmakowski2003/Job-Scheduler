@@ -52,6 +52,17 @@ public:
     return value;
   }
 
+  bool wait_until(std::chrono::system_clock::time_point deadline) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    return cv_.wait_until(lock, deadline,
+                          [this] { return !queue_.empty() || stopped_; });
+  }
+
+  void wait() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    cv_.wait(lock, [this] { return !queue_.empty() || stopped_; });
+  }
+
   void stop() {
     {
       std::lock_guard<std::mutex> lock(mutex_);
