@@ -47,3 +47,6 @@
 
 # clangd cache
 .cache
+
+# log files
+*.log

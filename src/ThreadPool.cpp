@@ -3,11 +3,14 @@
 namespace jobscheduler {
 
 ThreadPool::ThreadPool(size_t numThreads)
-    : loadBalancerChannel_(std::make_unique<MpscChannel<Event>>()),
+    : logger_(std::make_shared<AsyncLogger>()),
+      loadBalancerChannel_(std::make_unique<MpscChannel<TaskEvent>>()),
       loadBalancer_(std::make_unique<LoadBalancer>()) {
   for (size_t i = 0; i < numThreads; ++i) {
-    workerChannels_.emplace_back(std::make_unique<MpscChannel<Event>>());
-    workers_.emplace_back(&ThreadPool::workerFunction, this, std::ref(*workerChannels_.back()), std::ref(*loadBalancerChannel_));
+    workerChannels_.emplace_back(std::make_unique<MpscChannel<TaskEvent>>());
+    workers_.emplace_back(&ThreadPool::workerFunction, this,
+                          std::ref(*workerChannels_.back()),
+                          std::ref(*loadBalancerChannel_));
   }
 
   loadBalancerThread_ =
@@ -32,7 +35,8 @@ void ThreadPool::schedule(const std::shared_ptr<Task> &task) {
   loadBalancerChannel_->send(task);
 }
 
-void ThreadPool::workerFunction(MpscChannel<Event> &channel, MpscChannel<Event> &retryChannel) {
+void ThreadPool::workerFunction(MpscChannel<TaskEvent> &channel,
+                                MpscChannel<TaskEvent> &retryChannel) {
   while (true) {
     auto event = channel.receive();
 
@@ -42,12 +46,19 @@ void ThreadPool::workerFunction(MpscChannel<Event> &channel, MpscChannel<Event> 
 
     auto task = std::get<std::shared_ptr<Task>>(*event);
 
+    task->onStatusChange(
+        [logger = logger_, name = std::string(task->getName())](TaskStatus from,
+                                                                TaskStatus to) {
+          logger->logStatusChange(name, from, to);
+        });
+
     auto result = (*task)();
-    if (result == Task::ExecutionResult::Retry ||
-        result == Task::ExecutionResult::Reschedule) {
+    logger_->logResult(task->getName(), result);
+
+    if (result.status == ExecutionStatus::Reschedule) {
       retryChannel.send(task);
     }
   }
 }
 
-} // jobscheduler
+} // namespace jobscheduler

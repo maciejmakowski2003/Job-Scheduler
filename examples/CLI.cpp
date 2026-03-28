@@ -62,22 +62,22 @@ void CLI::printHelp() {
   const int cmdWidth = 45;
 
   std::cout << "\nAvailable Commands:\n"
-            << std::string(100, '=') << '\n'
+            << std::string(150, '=') << '\n'
             << std::left
             << std::setw(cmdWidth) << "Command" << "Description" << '\n'
-            << std::string(100, '-') << '\n'
+            << std::string(150, '-') << '\n'
             << std::setw(cmdWidth) << "schedule file <path> [priority] [--delay <ms>]"
-            << "Schedule a file task\n"
+            << "Schedule a file analysis task\n"
             << std::setw(cmdWidth)
             << "schedule compute [priority] [--delay <ms>]"
             << "Schedule a 5s compute task\n"
             << std::setw(cmdWidth)
-            << "schedule ping <port> [interval_ms] [priority]"
-            << "Periodically send a UDP ping to a local port\n"
+            << "schedule ping <port> [interval_ms]"
+            << "Periodically send a UDP ping to a local port (read with: nc -u -l <port>)\n"
             << std::setw(cmdWidth) << "status" << "List all tasks\n"
             << std::setw(cmdWidth) << "stop" << "Stop the scheduler and exit\n"
             << std::setw(cmdWidth) << "help" << "Show this help\n"
-            << std::string(100, '-') << std::endl;
+            << std::string(150, '-') << std::endl;
 }
 
 void CLI::printStatus() {
@@ -102,62 +102,36 @@ void CLI::printStatus() {
 }
 
 void CLI::scheduleTask(const std::string &type, std::istringstream &args) {
-  std::string fileArg;
-  int priority = 0;
-  auto scheduledTime = std::chrono::system_clock::now();
-
   if (type == "file") {
-    args >> fileArg;
-    if (fileArg.empty()) {
-      std::cerr << "Usage: schedule file <path> [priority] [--delay <ms>]\n";
-      return;
-    }
+    scheduleFileTask(args);
+  } else if (type == "compute") {
+    scheduleComputeTask(args);
   } else if (type == "ping") {
-    std::string portArg;
-    args >> portArg;
-    if (portArg.empty()) {
-      std::cerr << "Usage: schedule ping <port> [interval_ms] [priority]\n";
-      return;
-    }
-    int port = 0, intervalMs = 1000;
-    try { port = std::stoi(portArg); } catch (...) {
-      std::cerr << "Invalid port '" << portArg << "': expected an integer.\n";
-      return;
-    }
-    std::string token;
-    int positionalCount = 0;
-    while (args >> token) {
-      try {
-        int val = std::stoi(token);
-        if (positionalCount == 0) intervalMs = val;
-        else if (positionalCount == 1) priority = val;
-      } catch (const std::exception &) {
-        std::cerr << "Invalid argument '" << token << "': expected an integer.\n";
-        return;
-      }
-      ++positionalCount;
-    }
-    auto task = std::make_shared<PingTask>(
-        static_cast<uint16_t>(port), jobscheduler::milliseconds(intervalMs));
-    const int id = nextId_++;
-    tasks_.push_back({id, type, "UDP:" + portArg, task});
-    pool_.schedule(task);
-    std::cout << "Scheduled ping task #" << id
-              << " → UDP port " << port << " every " << intervalMs << "ms\n"
-              << "  Single receiver:   nc -u -l " << port << "\n";
-    return;
-  } else if (type != "compute") {
+    schedulePingTask(args);
+  } else {
     std::cerr << "Unknown task type '" << type << "'. Use 'file', 'compute', or 'ping'.\n";
+  }
+}
+
+void CLI::scheduleFileTask(std::istringstream &args) {
+  std::string fileArg;
+  args >> fileArg;
+  if (fileArg.empty()) {
+    std::cerr << "Usage: schedule file <path> [priority] [--delay <ms>]\n";
     return;
   }
 
+  int priority = 0;
+  auto scheduledTime = std::chrono::system_clock::now();
   std::string token;
   int positionalCount = 0;
   while (args >> token) {
     if (token == "--delay") {
       int delayMs = 0;
-      if (args >> delayMs)
-        scheduledTime = std::chrono::system_clock::now() + std::chrono::milliseconds{delayMs};
+      if (args >> delayMs) {
+        scheduledTime = std::chrono::system_clock::now() +
+                        std::chrono::milliseconds{delayMs};
+      }
     } else {
       if (positionalCount == 0) {
         try {
@@ -171,18 +145,74 @@ void CLI::scheduleTask(const std::string &type, std::istringstream &args) {
     }
   }
 
-  std::shared_ptr<jobscheduler::Task> task;
-  std::string description;
-  if (type == "file") {
-    task = std::make_shared<jobscheduler::FileTask>(fileArg, priority, scheduledTime);
-    description = fileArg;
-  } else {
-    task = std::make_shared<ComputeTask>(priority, std::chrono::milliseconds{5000}, scheduledTime);
-    description = "5000ms";
+  const int id = nextId_++;
+  auto task = std::make_shared<FileTask>(id, fileArg, priority, scheduledTime);
+  tasks_.push_back({id, "file", fileArg, task});
+  pool_.schedule(task);
+}
+
+void CLI::scheduleComputeTask(std::istringstream &args) {
+  int priority = 0;
+  auto scheduledTime = std::chrono::system_clock::now();
+  std::string token;
+  int positionalCount = 0;
+  while (args >> token) {
+    if (token == "--delay") {
+      int delayMs = 0;
+      if (args >> delayMs) {
+        scheduledTime = std::chrono::system_clock::now() + std::chrono::milliseconds{delayMs};
+      }
+    } else {
+      if (positionalCount == 0) {
+        try {
+          priority = std::stoi(token);
+        } catch (const std::exception &) {
+          std::cerr << "Invalid priority '" << token << "': expected an integer.\n";
+          return;
+        }
+      }
+      ++positionalCount;
+    }
   }
 
   const int id = nextId_++;
-  tasks_.push_back({id, type, description, task});
+  auto task = std::make_shared<ComputeTask>(id, priority, std::chrono::milliseconds{5000}, scheduledTime);
+  tasks_.push_back({id, "compute", "5000ms", task});
   pool_.schedule(task);
-  std::cout << "Scheduled " << type << " task #" << id << ": " << description << '\n';
+}
+
+void CLI::schedulePingTask(std::istringstream &args) {
+  std::string portArg;
+  args >> portArg;
+  if (portArg.empty()) {
+    std::cerr << "Usage: schedule ping <port> [interval_ms]\n";
+    return;
+  }
+
+  int port = 0, intervalMs = 1000;
+  try { port = std::stoi(portArg); } catch (...) {
+    std::cerr << "Invalid port '" << portArg << "': expected an integer.\n";
+    return;
+  }
+
+  std::string token;
+  int positionalCount = 0;
+  while (args >> token) {
+    try {
+      int val = std::stoi(token);
+      if (positionalCount == 0) {
+        intervalMs = val;
+      }
+    } catch (const std::exception &) {
+      std::cerr << "Invalid argument '" << token << "': expected an integer.\n";
+      return;
+    }
+    ++positionalCount;
+  }
+
+  const int id = nextId_++;
+  auto task = std::make_shared<PingTask>(
+      id, static_cast<uint16_t>(port), jobscheduler::milliseconds(intervalMs));
+  tasks_.push_back({id, "ping", "UDP:" + portArg, task});
+  pool_.schedule(task);
 }

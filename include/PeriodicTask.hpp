@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Task.hpp"
+#include "Task.h"
 #include <optional>
 #include <chrono>
 #include <limits>
@@ -12,12 +12,12 @@ namespace jobscheduler {
 class PeriodicTask : public Task {
 public:
   explicit PeriodicTask(
+      std::string name,
       milliseconds interval,
       time_point scheduledTime = std::chrono::system_clock::now(),
       int priority = 0)
-      : Task(scheduledTime, priority,
-             std::numeric_limits<int>::max(),
-             interval),
+      : Task(std::move(name), scheduledTime, priority,
+             std::numeric_limits<int>::max(), interval),
         interval_(interval) {}
 
 protected:

@@ -10,7 +10,7 @@ namespace jobscheduler {
 
 class LoadBalancer {
 public:
-  LoadBalancer();
+  LoadBalancer() = default;
   ~LoadBalancer() = default;
   DELETE_COPY_AND_MOVE(LoadBalancer);
 
@@ -26,8 +26,8 @@ public:
   /// is received.
   /// @param inputChannel The channel to receive events from the main thread.
   /// @param workerChannels The channels to send tasks to worker threads.
-  void run(MpscChannel<Event> &inputChannel,
-           std::vector<std::unique_ptr<MpscChannel<Event>>> &workerChannels);
+  void run(MpscChannel<TaskEvent> &inputChannel,
+           std::vector<std::unique_ptr<MpscChannel<TaskEvent>>> &workerChannels);
 
 private:
   struct PriorityComparator {
@@ -45,8 +45,8 @@ private:
   std::priority_queue<std::shared_ptr<Task>, std::vector<std::shared_ptr<Task>>,
                       PriorityComparator> readyQueue_;
 
-  std::priority_queue < std::shared_ptr<Task>,
-      std::vector<std::shared_ptr<Task>>, TimeComparator> scheduledQueue_;
+  std::priority_queue<std::shared_ptr<Task>,
+                      std::vector<std::shared_ptr<Task>>, TimeComparator> scheduledQueue_;
 };
 
 } // namespace jobscheduler

@@ -1,22 +1,24 @@
 #pragma once
 
-#include "Task.hpp"
+#include "Task.h"
 #include <chrono>
+#include <format>
 #include <thread>
 
 class ComputeTask : public jobscheduler::Task {
 public:
   explicit ComputeTask(
-      int priority,
+      int id, int priority,
       std::chrono::milliseconds duration = std::chrono::milliseconds{5000},
       std::chrono::system_clock::time_point scheduledTime =
           std::chrono::system_clock::now())
-      : Task(scheduledTime, priority, 2), duration_(duration) {}
+      : Task(std::format("ComputeTask#{}", id), scheduledTime, priority, 2),
+        duration_(duration) {}
 
 protected:
-  bool execute() final {
+  jobscheduler::TaskResult execute() final {
     std::this_thread::sleep_for(duration_);
-    return true;
+    return {jobscheduler::ExecutionStatus::Success};
   }
 
 private:

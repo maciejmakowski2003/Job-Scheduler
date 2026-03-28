@@ -1,9 +1,10 @@
 #pragma once
 
+#include "AsyncLogger.h"
 #include "Event.h"
 #include "LoadBalancer.h"
 #include "MpscChannel.hpp"
-#include "Task.hpp"
+#include "Task.h"
 #include "Macros.h"
 #include <memory>
 #include <thread>
@@ -25,10 +26,11 @@ public:
   void schedule(const std::shared_ptr<Task> &task);
 
 private:
-  std::unique_ptr<MpscChannel<Event>> loadBalancerChannel_;
+  std::shared_ptr<AsyncLogger> logger_;
+  std::unique_ptr<MpscChannel<TaskEvent>> loadBalancerChannel_;
   std::unique_ptr<LoadBalancer> loadBalancer_;
 
-  std::vector<std::unique_ptr<MpscChannel<Event>>> workerChannels_;
+  std::vector<std::unique_ptr<MpscChannel<TaskEvent>>> workerChannels_;
   std::vector<std::thread> workers_;
   std::thread loadBalancerThread_;
 
@@ -36,8 +38,8 @@ private:
   /// listens for events on its channel and executes tasks accordingly.
   /// @param channel The channel through which the worker receives events.
   /// @param retryChannel The channel to re-queue tasks that need to be retried.
-  void workerFunction(MpscChannel<Event> &channel,
-                      MpscChannel<Event> &retryChannel);
+  void workerFunction(MpscChannel<TaskEvent> &channel,
+                      MpscChannel<TaskEvent> &retryChannel);
 };
 
 } // namespace jobscheduler

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ThreadPool.h"
-#include "Task.hpp"
+#include "Task.h"
 #include "TaskStatus.h"
 
 #include <memory>
@@ -32,4 +32,7 @@ private:
   static void printHelp();
   void printStatus();
   void scheduleTask(const std::string &type, std::istringstream &args);
+  void scheduleFileTask(std::istringstream &args);
+  void scheduleComputeTask(std::istringstream &args);
+  void schedulePingTask(std::istringstream &args);
 };
