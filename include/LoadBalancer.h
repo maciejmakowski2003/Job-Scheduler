@@ -10,7 +10,7 @@ namespace jobscheduler {
 
 class LoadBalancer {
 public:
-  LoadBalancer();
+  LoadBalancer() = default;
   ~LoadBalancer() = default;
   DELETE_COPY_AND_MOVE(LoadBalancer);
 
@@ -45,8 +45,8 @@ private:
   std::priority_queue<std::shared_ptr<Task>, std::vector<std::shared_ptr<Task>>,
                       PriorityComparator> readyQueue_;
 
-  std::priority_queue < std::shared_ptr<Task>,
-      std::vector<std::shared_ptr<Task>>, TimeComparator> scheduledQueue_;
+  std::priority_queue<std::shared_ptr<Task>,
+                      std::vector<std::shared_ptr<Task>>, TimeComparator> scheduledQueue_;
 };
 
 } // namespace jobscheduler

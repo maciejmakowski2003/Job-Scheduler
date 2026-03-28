@@ -1,32 +1,46 @@
 #include "AsyncLogger.h"
 #include <format>
+#include <stdexcept>
 #include <string_view>
 
 namespace jobscheduler {
 
 std::string_view taskStatusToString(TaskStatus status) {
   switch (status) {
-  case TaskStatus::Pending:   return "Pending";
-  case TaskStatus::Running:   return "Running";
-  case TaskStatus::Succeeded: return "Succeeded";
-  case TaskStatus::Failed:    return "Failed";
-  case TaskStatus::Stopped:   return "Stopped";
+  case TaskStatus::Pending:
+    return "Pending";
+  case TaskStatus::Running:
+    return "Running";
+  case TaskStatus::Succeeded:
+    return "Succeeded";
+  case TaskStatus::Failed:
+    return "Failed";
+  case TaskStatus::Stopped:
+    return "Stopped";
   }
   return "Unknown";
 }
 
 std::string_view taskResultToString(TaskExecutionResult result) {
   switch (result) {
-  case TaskExecutionResult::Success:    return "Success";
-  case TaskExecutionResult::Failure:    return "Failure";
-  case TaskExecutionResult::Retry:      return "Retry";
-  case TaskExecutionResult::Reschedule: return "Reschedule";
+  case TaskExecutionResult::Success:
+    return "Success";
+  case TaskExecutionResult::Failure:
+    return "Failure";
+  case TaskExecutionResult::Retry:
+    return "Retry";
+  case TaskExecutionResult::Reschedule:
+    return "Reschedule";
   }
   return "Unknown";
 }
 
 AsyncLogger::AsyncLogger(const std::string &logFilePath)
     : logFile_(logFilePath, std::ios::app) {
+  if (!logFile_.is_open()) {
+    throw std::runtime_error("AsyncLogger: failed to open log file: " + logFilePath);
+  }
+
   workerThread_ = std::thread([this] {
     while (true) {
       auto event = channel_.receive();

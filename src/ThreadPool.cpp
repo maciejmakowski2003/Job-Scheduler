@@ -44,16 +44,21 @@ void ThreadPool::workerFunction(MpscChannel<TaskEvent> &channel, MpscChannel<Tas
 
     auto task = std::get<std::shared_ptr<Task>>(*event);
 
-    task->onStatusChange([logger = logger_, &task](TaskStatus from, TaskStatus to) {
-      logger->logStatusChange(task->getName(), from, to);
+    task->onStatusChange([logger = logger_, name = std::string(task->getName())](TaskStatus from, TaskStatus to) {
+      logger->logStatusChange(name, from, to);
     });
 
-    auto result = (*task)();
-    logger_->logResult(task->getName(), result);
+    try {
+      auto result = (*task)();
+      logger_->logResult(task->getName(), result);
 
-    if (result == TaskExecutionResult::Retry ||
-        result == TaskExecutionResult::Reschedule) {
-      retryChannel.send(task);
+      if (result == TaskExecutionResult::Retry ||
+          result == TaskExecutionResult::Reschedule) {
+        retryChannel.send(task);
+      }
+    } catch (...) {
+      task->setStatus(TaskStatus::Failed);
+      logger_->logResult(task->getName(), TaskExecutionResult::Failure);
     }
   }
 }
