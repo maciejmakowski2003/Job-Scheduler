@@ -1,5 +1,6 @@
 #pragma once
 
+#include "AsyncLogger.h"
 #include "Event.h"
 #include "LoadBalancer.h"
 #include "MpscChannel.hpp"
@@ -25,6 +26,7 @@ public:
   void schedule(const std::shared_ptr<Task> &task);
 
 private:
+  std::shared_ptr<AsyncLogger> logger_;
   std::unique_ptr<MpscChannel<TaskEvent>> loadBalancerChannel_;
   std::unique_ptr<LoadBalancer> loadBalancer_;
 

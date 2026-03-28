@@ -44,7 +44,14 @@ TaskStatus Task::getStatus() const noexcept {
 time_point Task::getScheduledTime() const noexcept { return scheduledTime_; }
 
 void Task::setStatus(TaskStatus newStatus) noexcept {
-  status_.store(newStatus, std::memory_order_release);
+  const auto oldStatus = status_.exchange(newStatus, std::memory_order_acq_rel);
+  if (onStatusChange_) {
+    onStatusChange_(oldStatus, newStatus);
+  }
+}
+
+void Task::onStatusChange(std::function<void(TaskStatus, TaskStatus)> callback) {
+  onStatusChange_ = std::move(callback);
 }
 
 std::optional<time_point> Task::nextSchedule() { return std::nullopt; }

@@ -14,7 +14,7 @@ namespace jobscheduler {
 
 class AsyncLogger {
 public:
-  explicit AsyncLogger(const std::string &logFilePath);
+  explicit AsyncLogger(const std::string &logFilePath = "job-scheduler.log");
   ~AsyncLogger();
   DELETE_COPY_AND_MOVE(AsyncLogger);
 

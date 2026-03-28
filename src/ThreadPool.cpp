@@ -4,7 +4,8 @@
 namespace jobscheduler {
 
 ThreadPool::ThreadPool(size_t numThreads)
-    : loadBalancerChannel_(std::make_unique<MpscChannel<TaskEvent>>()),
+    : logger_(std::make_shared<AsyncLogger>()),
+      loadBalancerChannel_(std::make_unique<MpscChannel<TaskEvent>>()),
       loadBalancer_(std::make_unique<LoadBalancer>()) {
   for (size_t i = 0; i < numThreads; ++i) {
     workerChannels_.emplace_back(std::make_unique<MpscChannel<TaskEvent>>());
@@ -43,7 +44,13 @@ void ThreadPool::workerFunction(MpscChannel<TaskEvent> &channel, MpscChannel<Tas
 
     auto task = std::get<std::shared_ptr<Task>>(*event);
 
+    task->onStatusChange([logger = logger_, &task](TaskStatus from, TaskStatus to) {
+      logger->logStatusChange(task->getName(), from, to);
+    });
+
     auto result = (*task)();
+    logger_->logResult(task->getName(), result);
+
     if (result == TaskExecutionResult::Retry ||
         result == TaskExecutionResult::Reschedule) {
       retryChannel.send(task);

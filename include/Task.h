@@ -5,6 +5,7 @@
 #include "Macros.h"
 #include <atomic>
 #include <chrono>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -58,6 +59,10 @@ public:
   /// @note Thread-safe.
   void setStatus(TaskStatus newStatus) noexcept;
 
+  /// @brief Register a callback invoked on every status transition.
+  /// @param callback Function called with (oldStatus, newStatus) on each change.
+  void onStatusChange(std::function<void(TaskStatus, TaskStatus)> callback);
+
 protected:
   /// @brief Perform the actual work of this task.
   /// @return true if the work completed successfully, false if it failed.
@@ -76,6 +81,7 @@ private:
   const int priority_;
   int retryCount_;
   std::atomic<TaskStatus> status_;
+  std::function<void(TaskStatus, TaskStatus)> onStatusChange_;
 };
 
 } // namespace jobscheduler
