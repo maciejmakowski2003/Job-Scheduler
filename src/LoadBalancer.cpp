@@ -16,8 +16,8 @@ LoadBalancer::LoadBalancer()
       }()) {}
 
 void LoadBalancer::run(
-    MpscChannel<Event> &inputChannel,
-    std::vector<std::unique_ptr<MpscChannel<Event>>> &workerChannels) {
+    MpscChannel<TaskEvent> &inputChannel,
+    std::vector<std::unique_ptr<MpscChannel<TaskEvent>>> &workerChannels) {
   size_t workerIndex = 0;
 
   while (true) {

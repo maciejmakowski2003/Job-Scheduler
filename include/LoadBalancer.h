@@ -26,8 +26,8 @@ public:
   /// is received.
   /// @param inputChannel The channel to receive events from the main thread.
   /// @param workerChannels The channels to send tasks to worker threads.
-  void run(MpscChannel<Event> &inputChannel,
-           std::vector<std::unique_ptr<MpscChannel<Event>>> &workerChannels);
+  void run(MpscChannel<TaskEvent> &inputChannel,
+           std::vector<std::unique_ptr<MpscChannel<TaskEvent>>> &workerChannels);
 
 private:
   struct PriorityComparator {

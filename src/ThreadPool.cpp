@@ -1,12 +1,13 @@
 #include "ThreadPool.h"
+#include "TaskExecutionResult.h"
 
 namespace jobscheduler {
 
 ThreadPool::ThreadPool(size_t numThreads)
-    : loadBalancerChannel_(std::make_unique<MpscChannel<Event>>()),
+    : loadBalancerChannel_(std::make_unique<MpscChannel<TaskEvent>>()),
       loadBalancer_(std::make_unique<LoadBalancer>()) {
   for (size_t i = 0; i < numThreads; ++i) {
-    workerChannels_.emplace_back(std::make_unique<MpscChannel<Event>>());
+    workerChannels_.emplace_back(std::make_unique<MpscChannel<TaskEvent>>());
     workers_.emplace_back(&ThreadPool::workerFunction, this, std::ref(*workerChannels_.back()), std::ref(*loadBalancerChannel_));
   }
 
@@ -32,7 +33,7 @@ void ThreadPool::schedule(const std::shared_ptr<Task> &task) {
   loadBalancerChannel_->send(task);
 }
 
-void ThreadPool::workerFunction(MpscChannel<Event> &channel, MpscChannel<Event> &retryChannel) {
+void ThreadPool::workerFunction(MpscChannel<TaskEvent> &channel, MpscChannel<TaskEvent> &retryChannel) {
   while (true) {
     auto event = channel.receive();
 
@@ -43,8 +44,8 @@ void ThreadPool::workerFunction(MpscChannel<Event> &channel, MpscChannel<Event> 
     auto task = std::get<std::shared_ptr<Task>>(*event);
 
     auto result = (*task)();
-    if (result == Task::ExecutionResult::Retry ||
-        result == Task::ExecutionResult::Reschedule) {
+    if (result == TaskExecutionResult::Retry ||
+        result == TaskExecutionResult::Reschedule) {
       retryChannel.send(task);
     }
   }

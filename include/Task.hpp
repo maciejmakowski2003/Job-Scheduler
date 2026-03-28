@@ -1,6 +1,7 @@
 #pragma once
 
 #include "TaskStatus.h"
+#include "TaskExecutionResult.h"
 #include "Macros.h"
 #include <atomic>
 #include <chrono>
@@ -16,9 +17,6 @@ using milliseconds = std::chrono::milliseconds;
 /// priority, scheduled time, and status.
 class Task {
 public:
-  /// @brief Defines the possible outcomes of a task execution attempt.
-  enum class ExecutionResult { Success, Failure, Retry, Reschedule };
-
   explicit Task(time_point scheduledTime = std::chrono::system_clock::now(),
                 int priority = 0, int retryCount = 0,
                 milliseconds retryTimeout = milliseconds(500))
@@ -34,17 +32,17 @@ public:
   /// counter and reschedules the next attempt by retryTimeout_.
   /// @return The result of the execution attempt, indicating success, failure, or retry.
   /// @note Must not be called concurrently with getScheduledTime().
-  ExecutionResult operator()() {
+  TaskExecutionResult operator()() {
     setStatus(TaskStatus::Running);
 
     if (execute()) {
       if (auto next = nextSchedule()) {
         scheduledTime_ = *next;
         setStatus(TaskStatus::Pending);
-        return ExecutionResult::Reschedule;
+        return TaskExecutionResult::Reschedule;
       }
       setStatus(TaskStatus::Succeeded);
-      return ExecutionResult::Success;
+      return TaskExecutionResult::Success;
     }
 
     --retryCount_;
@@ -52,11 +50,11 @@ public:
     if (retryCount_ >= 0) {
       setStatus(TaskStatus::Pending);
       scheduledTime_ = std::chrono::system_clock::now() + retryTimeout_;
-      return ExecutionResult::Retry;
+      return TaskExecutionResult::Retry;
     }
 
     setStatus(TaskStatus::Failed);
-    return ExecutionResult::Failure;
+    return TaskExecutionResult::Failure;
   }
 
   /// @brief Get the priority of the task.
