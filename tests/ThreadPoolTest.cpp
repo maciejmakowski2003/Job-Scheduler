@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "ThreadPool.h"
 #include "TaskStatus.h"
+#include <atomic>
 #include <chrono>
 #include <functional>
 #include <mutex>
@@ -14,8 +15,10 @@ public:
     explicit TrackingTask(
         int priority, std::function<bool()> cb = [] { return true; },
         std::chrono::system_clock::time_point t =
-            std::chrono::system_clock::now())
-        : Task(priority, t), cb_(std::move(cb)) {}
+            std::chrono::system_clock::now(),
+        int retryCount = 0,
+        milliseconds retryTimeout = milliseconds(500))
+        : Task(t, priority, retryCount, retryTimeout), cb_(std::move(cb)) {}
 
     bool execute() override { return cb_(); }
 
@@ -131,4 +134,67 @@ TEST(ThreadPool, TasksAreDispatchedInScheduledTimeOrderWithSingleWorker) {
 
     std::lock_guard lock(mu);
     EXPECT_EQ(order, (std::vector<int>{4, 3, 5, 2, 1}));
+}
+
+TEST(ThreadPool, TaskWithNoRetriesFailsImmediately) {
+    ThreadPool pool(1);
+    std::atomic<int> attempts{0};
+    auto task = std::make_shared<TrackingTask>(0, [&] {
+        ++attempts;
+        return false;
+    }, std::chrono::system_clock::now(), 0);
+
+    pool.schedule(task);
+    waitForStatus(task, TaskStatus::Failed);
+
+    EXPECT_EQ(attempts.load(), 1);
+}
+
+TEST(ThreadPool, TaskIsRetriedExactlyRetryCountTimes) {
+    ThreadPool pool(1);
+    std::atomic<int> attempts{0};
+    constexpr int retries = 3;
+    auto task = std::make_shared<TrackingTask>(0, [&] {
+        ++attempts;
+        return false;
+    }, std::chrono::system_clock::now(), retries, milliseconds(0));
+
+    pool.schedule(task);
+    waitForStatus(task, TaskStatus::Failed, std::chrono::milliseconds{5000});
+
+    EXPECT_EQ(attempts.load(), retries + 1);
+}
+
+TEST(ThreadPool, TaskSucceedsOnRetry) {
+    ThreadPool pool(1);
+    std::atomic<int> attempts{0};
+    auto task = std::make_shared<TrackingTask>(0, [&] {
+        return ++attempts >= 3;
+    }, std::chrono::system_clock::now(), 2, milliseconds(0));
+
+    pool.schedule(task);
+    waitForStatus(task, TaskStatus::Succeeded, std::chrono::milliseconds{5000});
+
+    EXPECT_EQ(attempts.load(), 3);
+}
+
+TEST(ThreadPool, RetryIsDelayedByRetryTimeout) {
+    ThreadPool pool(1);
+    constexpr auto retryTimeout = milliseconds(300);
+    std::atomic<int> attempts{0};
+    std::chrono::steady_clock::time_point firstFailTime;
+
+    auto task = std::make_shared<TrackingTask>(0, [&] {
+        if (++attempts == 1) {
+            firstFailTime = std::chrono::steady_clock::now();
+            return false;
+        }
+        return true;
+    }, std::chrono::system_clock::now(),1, retryTimeout);
+
+    pool.schedule(task);
+    waitForStatus(task, TaskStatus::Succeeded, std::chrono::milliseconds{5000});
+
+    auto elapsed = std::chrono::steady_clock::now() - firstFailTime;
+    EXPECT_GE(elapsed, retryTimeout);
 }

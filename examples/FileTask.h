@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Task.h"
+#include "Task.hpp"
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -13,7 +12,7 @@ class FileTask : public Task {
 public:
   explicit FileTask(std::filesystem::path path, int priority = 0,
                     std::chrono::system_clock::time_point scheduledTime = std::chrono::system_clock::now())
-      : Task(priority, scheduledTime), path_(std::move(path)) {}
+      : Task(scheduledTime, priority), path_(std::move(path)) {}
 
   bool execute() override {
     if (!std::filesystem::exists(path_)) {

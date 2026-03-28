@@ -121,7 +121,14 @@ void CLI::scheduleTask(const std::string &type, std::istringstream &args) {
       if (args >> delayMs)
         scheduledTime = std::chrono::system_clock::now() + std::chrono::milliseconds{delayMs};
     } else {
-      if (positionalCount == 0) priority = std::stoi(token);
+      if (positionalCount == 0) {
+        try {
+          priority = std::stoi(token);
+        } catch (const std::exception &) {
+          std::cerr << "Invalid priority '" << token << "': expected an integer.\n";
+          return;
+        }
+      }
       ++positionalCount;
     }
   }

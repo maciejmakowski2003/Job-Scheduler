@@ -1,17 +1,18 @@
 #include "ThreadPool.h"
-#include "TaskStatus.h"
 
 namespace jobscheduler {
 
-ThreadPool::ThreadPool(size_t numThreads) {
+ThreadPool::ThreadPool(size_t numThreads)
+    : loadBalancerChannel_(std::make_unique<MpscChannel<Event>>()),
+      loadBalancer_(std::make_unique<LoadBalancer>()) {
   for (size_t i = 0; i < numThreads; ++i) {
     workerChannels_.emplace_back(std::make_unique<MpscChannel<Event>>());
-    workers_.emplace_back(&ThreadPool::workerFunction, this, std::ref(*workerChannels_.back()));
+    workers_.emplace_back(&ThreadPool::workerFunction, this, std::ref(*workerChannels_.back()), std::ref(*loadBalancerChannel_));
   }
 
-  loadBalancer_ = std::make_unique<LoadBalancer>();
-  loadBalancerChannel_ = std::make_unique<MpscChannel<Event>>();
-  loadBalancerThread_ = std::thread(&LoadBalancer::run, loadBalancer_.get(), std::ref(*loadBalancerChannel_), std::ref(workerChannels_));
+  loadBalancerThread_ =
+      std::thread(&LoadBalancer::run, loadBalancer_.get(),
+                  std::ref(*loadBalancerChannel_), std::ref(workerChannels_));
 }
 
 ThreadPool::~ThreadPool() {
@@ -31,7 +32,7 @@ void ThreadPool::schedule(const std::shared_ptr<Task> &task) {
   loadBalancerChannel_->send(task);
 }
 
-void ThreadPool::workerFunction(MpscChannel<Event> &channel) {
+void ThreadPool::workerFunction(MpscChannel<Event> &channel, MpscChannel<Event> &retryChannel) {
   while (true) {
     auto event = channel.receive();
 
@@ -40,12 +41,9 @@ void ThreadPool::workerFunction(MpscChannel<Event> &channel) {
     }
 
     auto task = std::get<std::shared_ptr<Task>>(*event);
-    task->setStatus(TaskStatus::Running);
 
-    if (task->execute()) {
-      task->setStatus(TaskStatus::Succeeded);
-    } else {
-      task->setStatus(TaskStatus::Failed);
+    if ((*task)() == Task::ExecutionResult::Retry) {
+      retryChannel.send(task);
     }
   }
 }
