@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <thread>
 
 namespace jobscheduler {
 
@@ -19,13 +20,11 @@ public:
 protected:
   bool execute() final {
     if (!std::filesystem::exists(path_)) {
-      // file does not exist
       return false;
     }
 
     std::ifstream file(path_);
     if (!file.is_open()) {
-      // connot open file for reading (permissions, etc.)
       return false;
     }
 
@@ -33,6 +32,7 @@ protected:
     std::size_t words = 0;
     std::string line;
     while (std::getline(file, line)) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(20));
       ++lines;
       std::istringstream iss(line);
       std::string word;
