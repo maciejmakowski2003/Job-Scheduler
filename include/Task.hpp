@@ -4,6 +4,7 @@
 #include "Macros.h"
 #include <atomic>
 #include <chrono>
+#include <optional>
 
 namespace jobscheduler {
 
@@ -16,13 +17,8 @@ using milliseconds = std::chrono::milliseconds;
 class Task {
 public:
   /// @brief Defines the possible outcomes of a task execution attempt.
-  enum class ExecutionResult { Success, Failure, Retry };
+  enum class ExecutionResult { Success, Failure, Retry, Reschedule };
 
-  /// @brief Constructs a Task.
-  /// @param scheduledTime When the task becomes eligible for execution.
-  /// @param priority Higher value means higher scheduling priority.
-  /// @param retryCount Number of additional attempts allowed after the first failure. 0 means run once with no retries.
-  /// @param retryTimeout How long to wait before re-queuing after a failure.
   explicit Task(time_point scheduledTime = std::chrono::system_clock::now(),
                 int priority = 0, int retryCount = 0,
                 milliseconds retryTimeout = milliseconds(500))
@@ -42,6 +38,11 @@ public:
     setStatus(TaskStatus::Running);
 
     if (execute()) {
+      if (auto next = nextSchedule()) {
+        scheduledTime_ = *next;
+        setStatus(TaskStatus::Pending);
+        return ExecutionResult::Reschedule;
+      }
       setStatus(TaskStatus::Succeeded);
       return ExecutionResult::Success;
     }
@@ -84,9 +85,14 @@ public:
 
 protected:
   /// @brief Perform the actual work of this task.
-  /// @return true if the work completed successfully, false is it failed.
-  /// @note Not thread-safe. It is called exclusively from operator().
+  /// @return true if the work completed successfully, false if it failed.
+  /// @note Not thread-safe. Called exclusively from operator().
   virtual bool execute() = 0;
+
+  /// @brief Override to reschedule the task after a successful execution.
+  /// @return The next time point to run, or std::nullopt to mark as Succeeded.
+  /// @note Not thread-safe. Called exclusively from operator() after execute() returns true.
+  virtual std::optional<time_point> nextSchedule() { return std::nullopt; }
 
 private:
   time_point scheduledTime_;
