@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Macros.h"
+#include <concepts>
 #include <mutex>
 #include <queue>
 #include <condition_variable>
@@ -8,10 +9,15 @@
 
 namespace jobscheduler {
 
+/// @brief Concept for types that can be sent through MpscChannel.
+/// T must be at least move-constructible (required by move-send and receive).
+template <typename T>
+concept ChannelMessage = std::move_constructible<T>;
+
 /// @brief A thread-safe multi-producer single-consumer (MPSC) channel for
 /// communication between threads.
 /// @tparam T The type of messages that can be sent through the channel.
-template <typename T> class MpscChannel {
+template <ChannelMessage T> class MpscChannel {
 public:
   MpscChannel<T>() = default;
   ~MpscChannel() = default;
@@ -34,7 +40,7 @@ public:
   void send(T &&value) {
     {
       std::lock_guard<std::mutex> lock(mutex_);
-      queue_.push(value);
+      queue_.push(std::move(value));
     }
 
     cv_.notify_one();

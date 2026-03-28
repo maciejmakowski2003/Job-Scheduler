@@ -3,7 +3,7 @@
 #include "Event.h"
 #include "LoadBalancer.h"
 #include "MpscChannel.hpp"
-#include "Task.h"
+#include "Task.hpp"
 #include "Macros.h"
 #include <memory>
 #include <thread>
@@ -25,17 +25,19 @@ public:
   void schedule(const std::shared_ptr<Task> &task);
 
 private:
-  std::vector<std::thread> workers_;
-  std::vector<std::unique_ptr<MpscChannel<Event>>> workerChannels_;
-
-  std::unique_ptr<LoadBalancer> loadBalancer_;
-  std::thread loadBalancerThread_;
   std::unique_ptr<MpscChannel<Event>> loadBalancerChannel_;
+  std::unique_ptr<LoadBalancer> loadBalancer_;
+
+  std::vector<std::unique_ptr<MpscChannel<Event>>> workerChannels_;
+  std::vector<std::thread> workers_;
+  std::thread loadBalancerThread_;
 
   /// @brief The worker function that each worker thread runs. It continuously
   /// listens for events on its channel and executes tasks accordingly.
   /// @param channel The channel through which the worker receives events.
-  void workerFunction(MpscChannel<Event> &channel);
+  /// @param retryChannel The channel to re-queue tasks that need to be retried.
+  void workerFunction(MpscChannel<Event> &channel,
+                      MpscChannel<Event> &retryChannel);
 };
 
 } // namespace jobscheduler

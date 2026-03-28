@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace jobscheduler {
 
 /// @brief Enum representing the status of a task.
@@ -9,7 +11,7 @@ namespace jobscheduler {
 /// - Succeeded: The task has completed successfully.
 /// - Failed: The task has completed with a failure.
 /// - Stopped: The task has been stopped before completion.
-enum class TaskStatus {
+enum class TaskStatus: uint8_t {
   Pending,
   Running,
   Succeeded,

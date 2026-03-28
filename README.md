@@ -116,5 +116,5 @@ make clean     # remove build directory
 
 ```bash
 make examples
-./build/scheduler-cli
+./build/scheduler-cli [number_of_workers]
 ```

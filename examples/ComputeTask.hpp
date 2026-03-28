@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Task.h"
+#include "Task.hpp"
 #include <chrono>
 #include <thread>
 
@@ -9,7 +9,7 @@ public:
   explicit ComputeTask(int priority,
                        std::chrono::milliseconds duration = std::chrono::milliseconds{5000},
                        std::chrono::system_clock::time_point scheduledTime = std::chrono::system_clock::now())
-      : Task(priority, scheduledTime), duration_(duration) {}
+      : Task(scheduledTime, priority, 2), duration_(duration) {}
 
   bool execute() override {
     std::this_thread::sleep_for(duration_);

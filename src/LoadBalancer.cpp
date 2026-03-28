@@ -1,5 +1,4 @@
 #include "LoadBalancer.h"
-#include <thread>
 
 namespace jobscheduler {
 
@@ -16,8 +15,9 @@ LoadBalancer::LoadBalancer()
         return v;
       }()) {}
 
-void LoadBalancer::run(MpscChannel<Event> &inputChannel,
-                        std::vector<std::unique_ptr<MpscChannel<Event>>> &workerChannels) {
+void LoadBalancer::run(
+    MpscChannel<Event> &inputChannel,
+    std::vector<std::unique_ptr<MpscChannel<Event>>> &workerChannels) {
   size_t workerIndex = 0;
 
   while (true) {
