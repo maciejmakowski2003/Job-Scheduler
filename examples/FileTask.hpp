@@ -14,7 +14,8 @@ public:
                     std::chrono::system_clock::time_point scheduledTime = std::chrono::system_clock::now())
       : Task(scheduledTime, priority), path_(std::move(path)) {}
 
-  bool execute() override {
+protected:
+  bool execute() final {
     if (!std::filesystem::exists(path_)) {
       // file does not exist
       return false;

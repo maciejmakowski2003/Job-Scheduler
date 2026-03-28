@@ -1,6 +1,7 @@
 #include "CLI.h"
 #include "ComputeTask.hpp"
-#include "FileTask.h"
+#include "FileTask.hpp"
+#include "PingTask.hpp"
 
 #include <chrono>
 #include <iomanip>
@@ -36,7 +37,7 @@ void CLI::run() {
       std::string type;
       iss >> type;
       if (type.empty()) {
-        std::cerr << "Usage: schedule <file|compute> ...\n";
+        std::cerr << "Usage: schedule <file|compute|ping> ...\n";
       } else {
         scheduleTask(type, iss);
       }
@@ -70,6 +71,9 @@ void CLI::printHelp() {
             << std::setw(cmdWidth)
             << "schedule compute [priority] [--delay <ms>]"
             << "Schedule a 5s compute task\n"
+            << std::setw(cmdWidth)
+            << "schedule ping <port> [interval_ms] [priority]"
+            << "Periodically send a UDP ping to a local port\n"
             << std::setw(cmdWidth) << "status" << "List all tasks\n"
             << std::setw(cmdWidth) << "stop" << "Stop the scheduler and exit\n"
             << std::setw(cmdWidth) << "help" << "Show this help\n"
@@ -108,8 +112,42 @@ void CLI::scheduleTask(const std::string &type, std::istringstream &args) {
       std::cerr << "Usage: schedule file <path> [priority] [--delay <ms>]\n";
       return;
     }
+  } else if (type == "ping") {
+    std::string portArg;
+    args >> portArg;
+    if (portArg.empty()) {
+      std::cerr << "Usage: schedule ping <port> [interval_ms] [priority]\n";
+      return;
+    }
+    int port = 0, intervalMs = 1000;
+    try { port = std::stoi(portArg); } catch (...) {
+      std::cerr << "Invalid port '" << portArg << "': expected an integer.\n";
+      return;
+    }
+    std::string token;
+    int positionalCount = 0;
+    while (args >> token) {
+      try {
+        int val = std::stoi(token);
+        if (positionalCount == 0) intervalMs = val;
+        else if (positionalCount == 1) priority = val;
+      } catch (const std::exception &) {
+        std::cerr << "Invalid argument '" << token << "': expected an integer.\n";
+        return;
+      }
+      ++positionalCount;
+    }
+    auto task = std::make_shared<PingTask>(
+        static_cast<uint16_t>(port), jobscheduler::milliseconds(intervalMs));
+    const int id = nextId_++;
+    tasks_.push_back({id, type, "UDP:" + portArg, task});
+    pool_.schedule(task);
+    std::cout << "Scheduled ping task #" << id
+              << " → UDP port " << port << " every " << intervalMs << "ms\n"
+              << "  Single receiver:   nc -u -l " << port << "\n";
+    return;
   } else if (type != "compute") {
-    std::cerr << "Unknown task type '" << type << "'. Use 'file' or 'compute'.\n";
+    std::cerr << "Unknown task type '" << type << "'. Use 'file', 'compute', or 'ping'.\n";
     return;
   }
 

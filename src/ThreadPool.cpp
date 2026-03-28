@@ -42,7 +42,9 @@ void ThreadPool::workerFunction(MpscChannel<Event> &channel, MpscChannel<Event> 
 
     auto task = std::get<std::shared_ptr<Task>>(*event);
 
-    if ((*task)() == Task::ExecutionResult::Retry) {
+    auto result = (*task)();
+    if (result == Task::ExecutionResult::Retry ||
+        result == Task::ExecutionResult::Reschedule) {
       retryChannel.send(task);
     }
   }
