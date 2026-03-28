@@ -137,9 +137,9 @@ void CLI::scheduleTask(const std::string &type, std::istringstream &args) {
       }
       ++positionalCount;
     }
-    auto task = std::make_shared<PingTask>(
-        static_cast<uint16_t>(port), jobscheduler::milliseconds(intervalMs));
     const int id = nextId_++;
+    auto task = std::make_shared<PingTask>(
+        id, static_cast<uint16_t>(port), jobscheduler::milliseconds(intervalMs));
     tasks_.push_back({id, type, "UDP:" + portArg, task});
     pool_.schedule(task);
     std::cout << "Scheduled ping task #" << id
@@ -171,17 +171,16 @@ void CLI::scheduleTask(const std::string &type, std::istringstream &args) {
     }
   }
 
+  const int id = nextId_++;
   std::shared_ptr<jobscheduler::Task> task;
   std::string description;
   if (type == "file") {
-    task = std::make_shared<jobscheduler::FileTask>(fileArg, priority, scheduledTime);
+    task = std::make_shared<jobscheduler::FileTask>(id, fileArg, priority, scheduledTime);
     description = fileArg;
   } else {
-    task = std::make_shared<ComputeTask>(priority, std::chrono::milliseconds{5000}, scheduledTime);
+    task = std::make_shared<ComputeTask>(id, priority, std::chrono::milliseconds{5000}, scheduledTime);
     description = "5000ms";
   }
-
-  const int id = nextId_++;
   tasks_.push_back({id, type, description, task});
   pool_.schedule(task);
   std::cout << "Scheduled " << type << " task #" << id << ": " << description << '\n';

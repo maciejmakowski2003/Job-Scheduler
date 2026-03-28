@@ -18,7 +18,8 @@ public:
             std::chrono::system_clock::now(),
         int retryCount = 0,
         milliseconds retryTimeout = milliseconds(500))
-        : Task(t, priority, retryCount, retryTimeout), cb_(std::move(cb)) {}
+        : Task("TrackingTask", t, priority, retryCount, retryTimeout),
+          cb_(std::move(cb)) {}
 
     bool execute() override { return cb_(); }
 

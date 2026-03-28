@@ -10,9 +10,9 @@
 
 class PingTask : public jobscheduler::PeriodicTask {
 public:
-  explicit PingTask(uint16_t port,
+  explicit PingTask(int id, uint16_t port,
                     jobscheduler::milliseconds interval)
-      : PeriodicTask(interval), port_(port) {}
+      : PeriodicTask(std::format("PingTask#{}", id), interval), port_(port) {}
 
   ~PingTask() override {
     if (sockfd_ >= 0)

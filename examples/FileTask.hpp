@@ -2,6 +2,7 @@
 
 #include "Task.hpp"
 #include <filesystem>
+#include <format>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -10,9 +11,10 @@ namespace jobscheduler {
 
 class FileTask : public Task {
 public:
-  explicit FileTask(std::filesystem::path path, int priority = 0,
+  explicit FileTask(int id, std::filesystem::path path, int priority = 0,
                     std::chrono::system_clock::time_point scheduledTime = std::chrono::system_clock::now())
-      : Task(scheduledTime, priority), path_(std::move(path)) {}
+      : Task(std::format("FileTask#{}", id), scheduledTime, priority),
+        path_(std::move(path)) {}
 
 protected:
   bool execute() final {

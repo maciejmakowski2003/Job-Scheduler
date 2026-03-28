@@ -6,6 +6,8 @@
 #include <atomic>
 #include <chrono>
 #include <optional>
+#include <string>
+#include <string_view>
 
 namespace jobscheduler {
 
@@ -17,12 +19,13 @@ using milliseconds = std::chrono::milliseconds;
 /// priority, scheduled time, and status.
 class Task {
 public:
-  explicit Task(time_point scheduledTime = std::chrono::system_clock::now(),
+  explicit Task(std::string name,
+                time_point scheduledTime = std::chrono::system_clock::now(),
                 int priority = 0, int retryCount = 0,
                 milliseconds retryTimeout = milliseconds(500))
-      : scheduledTime_(scheduledTime), retryTimeout_(retryTimeout),
-        priority_(priority), retryCount_(retryCount),
-        status_(TaskStatus::Pending) {}
+      : name_(std::move(name)), scheduledTime_(scheduledTime),
+        retryTimeout_(retryTimeout), priority_(priority),
+        retryCount_(retryCount), status_(TaskStatus::Pending) {}
 
   virtual ~Task() = default;
   DELETE_COPY_AND_MOVE(Task);
@@ -56,6 +59,10 @@ public:
     setStatus(TaskStatus::Failed);
     return TaskExecutionResult::Failure;
   }
+
+  /// @brief Get the name of the task.
+  /// @return The name of the task.
+  std::string_view getName() const noexcept { return name_; }
 
   /// @brief Get the priority of the task.
   /// @return The priority of the task.
@@ -93,6 +100,7 @@ protected:
   virtual std::optional<time_point> nextSchedule() { return std::nullopt; }
 
 private:
+  const std::string name_;
   time_point scheduledTime_;
   const milliseconds retryTimeout_;
   const int priority_;
