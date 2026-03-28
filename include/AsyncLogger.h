@@ -3,7 +3,7 @@
 #include "Event.h"
 #include "Macros.h"
 #include "MpscChannel.hpp"
-#include "TaskExecutionResult.h"
+#include "TaskResult.h"
 #include "TaskStatus.h"
 #include <fstream>
 #include <string>
@@ -31,8 +31,7 @@ public:
   /// @param result The result of the execution attempt.
   /// @param details Optional additional details about the execution result.
   /// @note Thread-safe and non-blocking.
-  void logResult(std::string_view taskName, TaskExecutionResult result,
-                 std::string_view details = {});
+  void logResult(std::string_view taskName, TaskResult result);
 
 private:
   MpscChannel<LogEvent> channel_;

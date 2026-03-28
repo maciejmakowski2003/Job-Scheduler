@@ -146,7 +146,7 @@ void CLI::scheduleFileTask(std::istringstream &args) {
   }
 
   const int id = nextId_++;
-  auto task = std::make_shared<jobscheduler::FileTask>(id, fileArg, priority, scheduledTime);
+  auto task = std::make_shared<FileTask>(id, fileArg, priority, scheduledTime);
   tasks_.push_back({id, "file", fileArg, task});
   pool_.schedule(task);
 }

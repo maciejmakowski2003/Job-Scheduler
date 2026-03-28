@@ -16,9 +16,9 @@ public:
         duration_(duration) {}
 
 protected:
-  bool execute() final {
+  jobscheduler::TaskResult execute() final {
     std::this_thread::sleep_for(duration_);
-    return true;
+    return {jobscheduler::ExecutionStatus::Success};
   }
 
 private:

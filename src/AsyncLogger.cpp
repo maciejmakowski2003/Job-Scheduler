@@ -21,15 +21,13 @@ std::string_view taskStatusToString(TaskStatus status) {
   return "Unknown";
 }
 
-std::string_view taskResultToString(TaskExecutionResult result) {
+std::string_view taskResultToString(ExecutionStatus result) {
   switch (result) {
-  case TaskExecutionResult::Success:
+  case ExecutionStatus::Success:
     return "Success";
-  case TaskExecutionResult::Failure:
+  case ExecutionStatus::Failure:
     return "Failure";
-  case TaskExecutionResult::Retry:
-    return "Retry";
-  case TaskExecutionResult::Reschedule:
+  case ExecutionStatus::Reschedule:
     return "Reschedule";
   }
   return "Unknown";
@@ -38,7 +36,8 @@ std::string_view taskResultToString(TaskExecutionResult result) {
 AsyncLogger::AsyncLogger(const std::string &logFilePath)
     : logFile_(logFilePath, std::ios::app) {
   if (!logFile_.is_open()) {
-    throw std::runtime_error("AsyncLogger: failed to open log file: " + logFilePath);
+    throw std::runtime_error("AsyncLogger: failed to open log file: " +
+                             logFilePath);
   }
 
   workerThread_ = std::thread([this] {
@@ -51,7 +50,7 @@ AsyncLogger::AsyncLogger(const std::string &logFilePath)
       if (std::holds_alternative<StopEvent>(*event)) [[unlikely]] {
         break;
       }
-      
+
       auto &entry = std::get<LogEntryEvent>(*event);
       logFile_ << std::format("[{:%Y-%m-%dT%H:%M:%SZ}] {}: {}\n",
                               entry.timestamp, entry.taskName, entry.message);
@@ -69,21 +68,20 @@ AsyncLogger::~AsyncLogger() {
 
 void AsyncLogger::logStatusChange(std::string_view taskName,
                                   TaskStatus oldStatus, TaskStatus newStatus) {
-  channel_.send(LogEntryEvent{
-      std::string(taskName),
-      std::format("status changed from {} to {}", taskStatusToString(oldStatus),
-                  taskStatusToString(newStatus)),
-      std::chrono::system_clock::now()});
+  channel_.send(LogEntryEvent{std::string(taskName),
+                              std::format("status changed from {} to {}",
+                                          taskStatusToString(oldStatus),
+                                          taskStatusToString(newStatus)),
+                              std::chrono::system_clock::now()});
 }
 
-void AsyncLogger::logResult(std::string_view taskName,
-                            TaskExecutionResult result,
-                            std::string_view details) {
+void AsyncLogger::logResult(std::string_view taskName, TaskResult result) {
   std::string message =
-      details.empty()
-          ? std::format("result={}", taskResultToString(result))
-          : std::format("result={} ({})", taskResultToString(result), details);
-  
+      result.message.empty()
+          ? std::format("result={}", taskResultToString(result.status))
+          : std::format("result={} ({})", taskResultToString(result.status),
+                        result.message);
+
   channel_.send(LogEntryEvent{std::string(taskName), std::move(message),
                               std::chrono::system_clock::now()});
 }

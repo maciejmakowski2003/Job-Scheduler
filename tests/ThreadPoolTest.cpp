@@ -21,7 +21,10 @@ public:
         : Task("TrackingTask", t, priority, retryCount, retryTimeout),
           cb_(std::move(cb)) {}
 
-    bool execute() override { return cb_(); }
+    TaskResult execute() override {
+      return cb_() ? TaskResult{ExecutionStatus::Success}
+                   : TaskResult{ExecutionStatus::Failure};
+    }
 
 private:
   std::function<bool()> cb_;

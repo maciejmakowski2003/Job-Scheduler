@@ -1,7 +1,7 @@
 #pragma once
 
 #include "TaskStatus.h"
-#include "TaskExecutionResult.h"
+#include "TaskResult.h"
 #include "Macros.h"
 #include <atomic>
 #include <chrono>
@@ -33,7 +33,7 @@ public:
   /// counter and reschedules the next attempt by retryTimeout_.
   /// @return The result of the execution attempt, indicating success, failure, or retry.
   /// @note Must not be called concurrently with getScheduledTime().
-  TaskExecutionResult operator()();
+  TaskResult operator()() noexcept;
 
   /// @brief Get the name of the task.
   /// @return The name of the task.
@@ -67,7 +67,7 @@ protected:
   /// @brief Perform the actual work of this task.
   /// @return true if the work completed successfully, false if it failed.
   /// @note Not thread-safe. Called exclusively from operator().
-  virtual bool execute() = 0;
+  virtual TaskResult execute() = 0;
 
   /// @brief Override to reschedule the task after a successful execution.
   /// @return The next time point to run, or std::nullopt to mark as Succeeded.
