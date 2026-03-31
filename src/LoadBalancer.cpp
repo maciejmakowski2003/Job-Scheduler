@@ -12,16 +12,25 @@ void LoadBalancer::run(
   try {
     while (true) {
       while (auto event = inputChannel.try_receive()) {
-        if (std::holds_alternative<StopEvent>(*event)) [[unlikely]] {
-          for (size_t i = 0; i < workerChannels.size(); ++i) {
-            workerChannels[i]->send(StopEvent{});
-          }
+        scheduledQueue_.push(std::move(*event));
+      }
 
-          return;
-        } else {
-          auto task = std::get<std::shared_ptr<Task>>(*event);
-          scheduledQueue_.push(std::move(task));
+      if (inputChannel.is_stopped()) [[unlikely]] {
+        while (!scheduledQueue_.empty()) {
+          scheduledQueue_.top()->setStatus(TaskStatus::Stopped);
+          scheduledQueue_.pop();
         }
+
+        while (!readyQueue_.empty()) {
+          readyQueue_.top()->setStatus(TaskStatus::Stopped);
+          readyQueue_.pop();
+        }
+
+        for (auto &ch : workerChannels) {
+          ch->stop();
+        }
+
+        return;
       }
 
       auto now = std::chrono::system_clock::now();
@@ -48,7 +57,7 @@ void LoadBalancer::run(
     }
   } catch (...) {
     for (auto &ch : workerChannels) {
-      ch->send(StopEvent{});
+      ch->stop();
     }
     throw;
   }

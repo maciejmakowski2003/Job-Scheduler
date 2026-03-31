@@ -43,17 +43,12 @@ AsyncLogger::AsyncLogger(const std::string &logFilePath)
   workerThread_ = std::thread([this] {
     while (true) {
       auto event = channel_.receive();
-      if (!event.has_value()) {
+      if (!event) [[unlikely]] {
         break;
       }
 
-      if (std::holds_alternative<StopEvent>(*event)) [[unlikely]] {
-        break;
-      }
-
-      auto &entry = std::get<LogEntryEvent>(*event);
       logFile_ << std::format("[{:%Y-%m-%dT%H:%M:%SZ}] {}: {}\n",
-                              entry.timestamp, entry.taskName, entry.message);
+                              event->timestamp, event->taskName, event->message);
       logFile_.flush();
     }
   });
@@ -68,7 +63,7 @@ AsyncLogger::~AsyncLogger() {
 
 void AsyncLogger::logStatusChange(std::string_view taskName,
                                   TaskStatus oldStatus, TaskStatus newStatus) {
-  channel_.send(LogEntryEvent{std::string(taskName),
+  channel_.send(LogEvent{std::string(taskName),
                               std::format("status changed from {} to {}",
                                           taskStatusToString(oldStatus),
                                           taskStatusToString(newStatus)),
@@ -82,7 +77,7 @@ void AsyncLogger::logResult(std::string_view taskName, TaskResult result) {
           : std::format("result={} ({})", taskResultToString(result.status),
                         result.message);
 
-  channel_.send(LogEntryEvent{std::string(taskName), std::move(message),
+  channel_.send(LogEvent{std::string(taskName), std::move(message),
                               std::chrono::system_clock::now()});
 }
 

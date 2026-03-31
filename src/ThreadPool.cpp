@@ -19,11 +19,31 @@ ThreadPool::ThreadPool(size_t numThreads)
 }
 
 ThreadPool::~ThreadPool() {
-  loadBalancerChannel_->send(StopEvent{});
+  stop();
+}
+
+void ThreadPool::schedule(const std::shared_ptr<Task> &task) {
+  if (stopped_.load(std::memory_order_acquire)) {
+    throw std::runtime_error("ThreadPool is stopped. Cannot schedule new tasks.");
+  }
+  
+  task->onStatusChange([logger = logger_, name = std::string(task->getName())](
+                           TaskStatus from, TaskStatus to) {
+    logger->logStatusChange(name, from, to);
+  });
+
+  loadBalancerChannel_->send(task);
+}
+
+void ThreadPool::stop() {
+  if (stopped_.exchange(true, std::memory_order_acq_rel)) {
+    return;
+  }
+
+  loadBalancerChannel_->stop();
   if (loadBalancerThread_.joinable()) {
     loadBalancerThread_.join();
   }
-
   for (auto &worker : workers_) {
     if (worker.joinable()) {
       worker.join();
@@ -31,26 +51,19 @@ ThreadPool::~ThreadPool() {
   }
 }
 
-void ThreadPool::schedule(const std::shared_ptr<Task> &task) {
-  loadBalancerChannel_->send(task);
-}
-
 void ThreadPool::workerFunction(MpscChannel<TaskEvent> &channel,
                                 MpscChannel<TaskEvent> &retryChannel) {
   while (true) {
     auto event = channel.receive();
 
-    if (!event || std::holds_alternative<StopEvent>(*event)) [[unlikely]] {
+    if (!event) [[unlikely]] {
+      while (auto remainingEvent = channel.try_receive()) {
+        (*remainingEvent)->setStatus(TaskStatus::Stopped);
+      }
       break;
     }
 
-    auto task = std::get<std::shared_ptr<Task>>(*event);
-
-    task->onStatusChange(
-        [logger = logger_, name = std::string(task->getName())](TaskStatus from,
-                                                                TaskStatus to) {
-          logger->logStatusChange(name, from, to);
-        });
+    auto task = *event;
 
     auto result = (*task)();
     logger_->logResult(task->getName(), result);

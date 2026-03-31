@@ -102,9 +102,15 @@ public:
     cv_.notify_all();
   }
 
+  /// @brief Check if the channel has been stopped.
+  bool is_stopped() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return stopped_;
+  }
+
 private:
   std::queue<T> queue_;
-  std::mutex mutex_;
+  mutable std::mutex mutex_;
   std::condition_variable cv_;
   bool stopped_{false};
 };
