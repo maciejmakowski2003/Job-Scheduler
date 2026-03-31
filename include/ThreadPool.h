@@ -6,6 +6,7 @@
 #include "MpscChannel.hpp"
 #include "Task.h"
 #include "Macros.h"
+#include <atomic>
 #include <memory>
 #include <thread>
 #include <vector>
@@ -25,6 +26,10 @@ public:
   /// @param task A shared pointer to the task to be executed.
   void schedule(const std::shared_ptr<Task> &task);
 
+  /// @brief Stops the thread pool and all worker threads gracefully.
+  /// Blocking call that waits for all threads to finish their current tasks before exiting.
+  void stop();
+
 private:
   std::shared_ptr<AsyncLogger> logger_;
   std::unique_ptr<MpscChannel<TaskEvent>> loadBalancerChannel_;
@@ -33,6 +38,8 @@ private:
   std::vector<std::unique_ptr<MpscChannel<TaskEvent>>> workerChannels_;
   std::vector<std::thread> workers_;
   std::thread loadBalancerThread_;
+
+  std::atomic<bool> stopped_{false};
 
   /// @brief The worker function that each worker thread runs. It continuously
   /// listens for events on its channel and executes tasks accordingly.

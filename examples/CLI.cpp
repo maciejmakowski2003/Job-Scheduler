@@ -28,6 +28,8 @@ void CLI::run() {
       continue;
     } else if (cmd == "stop") {
       std::cout << "Stopping scheduler...\n";
+      pool_.stop();
+      printStatus();
       break;
     } else if (cmd == "help") {
       printHelp();

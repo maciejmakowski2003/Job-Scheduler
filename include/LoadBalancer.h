@@ -31,13 +31,13 @@ public:
 
 private:
   struct PriorityComparator {
-    bool operator()(const std::shared_ptr<Task> &a, const std::shared_ptr<Task> &b) const {
+    bool operator()(const std::shared_ptr<Task> &a, const std::shared_ptr<Task> &b) const noexcept {
       return a->getPriority() < b->getPriority();
     }
   };
 
   struct TimeComparator {
-    bool operator()(const std::shared_ptr<Task> &a, const std::shared_ptr<Task> &b) const {
+    bool operator()(const std::shared_ptr<Task> &a, const std::shared_ptr<Task> &b) const noexcept {
       return a->getScheduledTime() > b->getScheduledTime();
     }
   };
