@@ -202,3 +202,69 @@ TEST(ThreadPool, RetryIsDelayedByRetryTimeout) {
     auto elapsed = std::chrono::steady_clock::now() - firstFailTime;
     EXPECT_GE(elapsed, retryTimeout);
 }
+
+TEST(ThreadPool, StopIsIdempotent) {
+    ThreadPool pool(2);
+    pool.stop();
+    pool.stop();
+}
+
+TEST(ThreadPool, ScheduleAfterStopThrows) {
+    ThreadPool pool(1);
+    pool.stop();
+    auto task = std::make_shared<TrackingTask>(0);
+    EXPECT_THROW(pool.schedule(task), std::runtime_error);
+}
+
+TEST(ThreadPool, DelayedTasksGetStoppedStatusOnShutdown) {
+    ThreadPool pool(1);
+    auto farFuture = std::chrono::system_clock::now() + std::chrono::hours{1};
+    auto task = std::make_shared<TrackingTask>(0, [] { return true; }, farFuture);
+    pool.schedule(task);
+    pool.stop();
+    EXPECT_EQ(task->getStatus(), TaskStatus::Stopped);
+}
+
+TEST(ThreadPool, StopBlocksUntilAllTasksSettle) {
+    ThreadPool pool(2);
+    const int N = 10;
+    std::vector<std::shared_ptr<TrackingTask>> tasks;
+    auto farFuture = std::chrono::system_clock::now() + std::chrono::hours{1};
+    for (int i = 0; i < N; ++i) {
+        tasks.push_back(std::make_shared<TrackingTask>(0, [] { return true; }, farFuture));
+        pool.schedule(tasks.back());
+    }
+    pool.stop();
+    for (const auto &t : tasks) {
+        auto s = t->getStatus();
+        bool terminalStatus = s == TaskStatus::Succeeded ||
+                        s == TaskStatus::Failed ||
+                        s == TaskStatus::Stopped;
+        EXPECT_TRUE(terminalStatus);
+    }
+}
+
+TEST(ThreadPool, TaskExecutingWhenStopCalledCompletesNormally) {
+    ThreadPool pool(1);
+    std::atomic<bool> started{false};
+    std::atomic<bool> mayFinish{false};
+
+    auto task = std::make_shared<TrackingTask>(0, [&] {
+        started.store(true);
+        while (!mayFinish.load()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds{5});
+        }
+        return true;
+    });
+
+    pool.schedule(task);
+    while (!started.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds{1});
+    }
+
+    std::thread stopper([&] { pool.stop(); });
+    mayFinish.store(true);
+    stopper.join();
+
+    EXPECT_EQ(task->getStatus(), TaskStatus::Succeeded);
+}
