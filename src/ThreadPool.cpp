@@ -44,10 +44,16 @@ void ThreadPool::stop() {
   if (loadBalancerThread_.joinable()) {
     loadBalancerThread_.join();
   }
+
   for (auto &worker : workers_) {
     if (worker.joinable()) {
       worker.join();
     }
+  }
+
+  // drain tasks re-queued by worker after load balancer stops
+  while (auto task = loadBalancerChannel_->try_receive()) {
+    (*task)->setStatus(TaskStatus::Stopped);
   }
 }
 
