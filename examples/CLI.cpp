@@ -1,7 +1,7 @@
 #include "CLI.h"
-#include "ComputeTask.hpp"
-#include "FileTask.hpp"
-#include "PingTask.hpp"
+#include "ComputeTask.h"
+#include "FileTask.h"
+#include "PingTask.h"
 
 #include <chrono>
 #include <iomanip>
@@ -61,13 +61,13 @@ std::string_view CLI::statusToString(jobscheduler::TaskStatus status) {
 }
 
 void CLI::printHelp() {
-  const int cmdWidth = 45;
+  const int cmdWidth = 50;
 
   std::cout << "\nAvailable Commands:\n"
-            << std::string(150, '=') << '\n'
+            << std::string(100, '=') << '\n'
             << std::left
             << std::setw(cmdWidth) << "Command" << "Description" << '\n'
-            << std::string(150, '-') << '\n'
+            << std::string(100, '-') << '\n'
             << std::setw(cmdWidth) << "schedule file <path> [priority] [--delay <ms>]"
             << "Schedule a file analysis task\n"
             << std::setw(cmdWidth)
@@ -79,7 +79,7 @@ void CLI::printHelp() {
             << std::setw(cmdWidth) << "status" << "List all tasks\n"
             << std::setw(cmdWidth) << "stop" << "Stop the scheduler and exit\n"
             << std::setw(cmdWidth) << "help" << "Show this help\n"
-            << std::string(150, '-') << std::endl;
+            << std::string(100, '-') << std::endl;
 }
 
 void CLI::printStatus() {

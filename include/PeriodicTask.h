@@ -1,9 +1,8 @@
 #pragma once
 
 #include "Task.h"
-#include <optional>
 #include <chrono>
-#include <limits>
+#include <optional>
 
 namespace jobscheduler {
 
@@ -15,15 +14,10 @@ public:
       std::string name,
       milliseconds interval,
       time_point scheduledTime = std::chrono::system_clock::now(),
-      int priority = 0)
-      : Task(std::move(name), scheduledTime, priority,
-             std::numeric_limits<int>::max(), interval),
-        interval_(interval) {}
+      int priority = 0);
 
 protected:
-  std::optional<time_point> nextSchedule() override {
-    return std::chrono::system_clock::now() + interval_;
-  }
+  std::optional<time_point> nextSchedule() override;
 
 private:
   const milliseconds interval_;
