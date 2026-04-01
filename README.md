@@ -6,7 +6,7 @@ Biblioteka do planowania zadań w C++.
 
 Biblioteka stworzona w ramach projektu na studia informatyczne, kurs zaawansowanej programowania w C++. Zapewnia wydajny system do planowania i wykonywania zadań w środowisku wielowątkowym. Wspiera definiowanie własnych typów zadań, priorytetów oraz wgląd w stan zadań w czasie rzeczywistym. Co więcej biblioteka zapewnia mechanizm ponowienia wykonania zadania w razie błędu, planowanie zadań na określony czas oraz kompleksowe zarządzanie zasobami.
 
-## Architecture 
+## Architektura systemu
 
 ### Zadania
 
@@ -50,7 +50,7 @@ Komunikacja między komponentami odbywa się za pomocą kanałów MPSC, które u
 
 Jako przykładowa forma interakcji z systemem, biblioteka zapewnia prosty interfejs CLI. Umożliwia on planowanie zadań, monitorowanie ich stanu oraz zarządzanie cyklem życia puli wątków.
 
-![Archutektura](assets/architecture_diagram.png)
+![Architektura](assets/architecture_diagram.png)
 
 ## Diagram klas
 
