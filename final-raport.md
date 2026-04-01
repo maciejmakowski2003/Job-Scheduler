@@ -14,6 +14,10 @@ Link do repozytorium: https://github.com/maciejmakowski2003/Job-Scheduler
 - Monitorowanie stanu zadań w czasie rzeczywistym
 - Asynchroniczne logowanie zmian stanu zadań do pliku
 
+# Diagram klas
+
+![Diagram klas](assets/class_diagram.png)
+
 # Instrukcja uruchomienia 
 
 ```bash
