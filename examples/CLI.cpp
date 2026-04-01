@@ -87,13 +87,12 @@ void CLI::printStatus() {
     std::cout << "No tasks scheduled.\n";
     return;
   }
-  std::cout << std::left
-            << std::setw(6)  << "ID"
-            << std::setw(12) << "Type"
-            << std::setw(32) << "Description"
-            << std::setw(10) << "Priority"
+
+  std::cout << std::left << std::setw(6) << "ID" << std::setw(12) << "Type"
+            << std::setw(32) << "Description" << std::setw(10) << "Priority"
             << "Status\n"
             << std::string(70, '-') << '\n';
+  
   for (const auto &entry : tasks_) {
     std::cout << std::setw(6)  << entry.id
               << std::setw(12) << entry.type
