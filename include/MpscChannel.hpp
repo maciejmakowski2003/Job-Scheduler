@@ -103,7 +103,7 @@ public:
   }
 
   /// @brief Check if the channel has been stopped.
-  bool is_stopped() const {
+  bool isStopped() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return stopped_;
   }

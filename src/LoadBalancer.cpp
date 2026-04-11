@@ -15,7 +15,7 @@ void LoadBalancer::run(
         scheduledQueue_.push(std::move(*event));
       }
 
-      if (inputChannel.is_stopped()) [[unlikely]] {
+      if (inputChannel.isStopped()) [[unlikely]] {
         while (!scheduledQueue_.empty()) {
           scheduledQueue_.top()->setStatus(TaskStatus::Stopped);
           scheduledQueue_.pop();
